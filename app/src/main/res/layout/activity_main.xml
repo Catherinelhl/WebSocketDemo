@@ -3,40 +3,56 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:orientation="vertical"
-        android:layout_margin="10dp"
+        android:padding="10dp"
         android:layout_height="match_parent">
-    <TextView
-            android:id="@+id/tv_connect_url"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="URL:"/>
+    <EditText
+            android:id="@+id/et_connect_url"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
     <EditText
             android:id="@+id/et_content"
             android:layout_width="match_parent"
-              android:hint="please enter the message you want to"
-              android:layout_height="wrap_content"/>
+            android:hint="please enter the message you want to"
+            android:layout_height="wrap_content"/>
     <Button
             android:id="@+id/btn_connect_socket"
             android:layout_width="match_parent"
             android:textAllCaps="false"
+            android:textColor="@color/colorPrimaryDark"
             android:layout_height="wrap_content"
+            android:textStyle="bold"
             android:text="ConnectSocket"/>
     <Button
             android:id="@+id/btn_send_message"
             android:layout_width="match_parent"
             android:textAllCaps="false"
+            android:textColor="@color/colorPrimaryDark"
             android:layout_height="wrap_content"
+            android:textStyle="bold"
+
             android:text="SendMessage"/>
 
     <TextView
+            android:id="@+id/tv_clean_log"
             android:text="Response Info:"
             android:textSize="16sp"
             android:lineSpacingExtra="3sp"
             android:textColor="#000000"
             android:layout_marginTop="10dp"
-            android:id="@+id/tv_response_info"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
+    <ScrollView android:layout_width="match_parent"
+                android:background="#eeeeee"
+                android:layout_height="match_parent">
+        <TextView
+                android:textSize="16sp"
+                android:lineSpacingExtra="3sp"
+                android:textColor="#000000"
+                android:padding="10dp"
+                android:id="@+id/tv_response_info"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+    </ScrollView>
 
 
 </LinearLayout>

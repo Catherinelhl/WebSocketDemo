@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import bcaasc.io.websocketdemo.constants.Constants;
 import bcaasc.io.websocketdemo.constants.URLConstants;
 import bcaasc.io.websocketdemo.interval.IntervalEvent;
@@ -14,6 +15,7 @@ import bcaasc.io.websocketdemo.socket.WebSockets;
 import bcaasc.io.websocketdemo.tools.LogTool;
 
 import java.net.URI;
+import java.net.URL;
 
 /**
  * @author catherine.brainwilliam
@@ -28,8 +30,11 @@ public class WebSocketService extends Service {
 
     public void connectWebSocket(WebSocketResponseListener webSocketResponseListener) {
         this.webSocketResponseListener = webSocketResponseListener;
-        URI uri = URI.create(URLConstants.webSocketURL);
-        webSockets = new WebSockets(uri);
+        String url = URLConstants.inputURL;
+        if (TextUtils.isEmpty(url)) {
+            url = URLConstants.webSocketURL;
+        }
+        webSockets = new WebSockets(URI.create(url));
         // set the interval time between of client and server
 //        webSockets.setConnectionLostTimeout(30);
         webSockets.setWebSocketListener(webSocketResponseListener);
@@ -85,6 +90,14 @@ public class WebSocketService extends Service {
             webSockets.close();
         }
         return super.onUnbind(intent);
+    }
+
+
+    public void closeWebSocket() {
+        if (webSockets != null) {
+            webSockets.close();
+            webSockets=null;
+        }
     }
 
     public class WebSocketBinder extends Binder {

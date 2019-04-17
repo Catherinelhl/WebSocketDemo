@@ -7,4 +7,6 @@ package bcaasc.io.websocketdemo.constants;
 public class URLConstants {
 //    public static final String webSocketURL ="ws://121.40.165.18:8800";
     public static final String webSocketURL ="wss://echo.websocket.org";
+
+    public static String inputURL;
 }

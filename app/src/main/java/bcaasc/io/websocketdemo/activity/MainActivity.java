@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.StrictMode;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
@@ -14,6 +13,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 import bcaasc.io.websocketdemo.R;
 import bcaasc.io.websocketdemo.constants.Constants;
 import bcaasc.io.websocketdemo.constants.URLConstants;
@@ -22,7 +22,13 @@ import bcaasc.io.websocketdemo.service.WebSocketService;
 import bcaasc.io.websocketdemo.tools.LogTool;
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import com.jakewharton.rxbinding2.view.RxView;
+import io.reactivex.Observer;
+import io.reactivex.disposables.Disposable;
 import org.java_websocket.handshake.ServerHandshake;
+import org.w3c.dom.Text;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author catherine.brainwilliam
@@ -37,10 +43,12 @@ import org.java_websocket.handshake.ServerHandshake;
 public class MainActivity extends AppCompatActivity implements WebSocketResponseListener {
     @BindView(R.id.et_content)
     EditText etContent;
+    @BindView(R.id.et_connect_url)
+    EditText etConnectUrl;
+    @BindView(R.id.tv_clean_log)
+    TextView tvCleanLog;
     private String TAG = MainActivity.class.getSimpleName();
 
-    @BindView(R.id.tv_connect_url)
-    TextView tvConnectUrl;
     @BindView(R.id.btn_connect_socket)
     Button btnConnectSocket;
     @BindView(R.id.btn_send_message)
@@ -53,6 +61,8 @@ public class MainActivity extends AppCompatActivity implements WebSocketResponse
     private WebSocketService webSocketService;
     //得到当前连接service的Intent
     private Intent webSocketServiceIntent;
+    //用来判断当前是否是正在连接状态
+    private boolean isTryConnect;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -69,30 +79,101 @@ public class MainActivity extends AppCompatActivity implements WebSocketResponse
     }
 
     private void initView() {
-        tvConnectUrl.setText("URL:【" + URLConstants.webSocketURL + "】");
+        etConnectUrl.setText(URLConstants.webSocketURL);
     }
 
     private void initListener() {
-        btnConnectSocket.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // 连接WebSocketService
-                connectWebSocketService();
+        RxView.clicks(btnConnectSocket).throttleFirst(1, TimeUnit.SECONDS)
+                .subscribe(new Observer<Object>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
 
-            }
-        });
-        btnSendMessage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String message = etContent.getText().toString();
-                if (TextUtils.isEmpty(message)) {
-                    message = "{\"bean\":{\"path\":\"/getBalance\"},\"walletVO\":{\"walletAddress\":\"asdgfadhsgdjhklgfhdgsfadsd\"},\"remoteInfoVO\":{\"realIP\":\"35.194.115.233\"}}";
-                }
-                if (webSocketService != null) {
-                    webSocketService.sendMessage(message);
-                }
-            }
-        });
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+
+                        String status = btnConnectSocket.getText().toString();
+                        // 如果当前是未连接的状态
+                        if (TextUtils.equals(status, "ConnectSocket")) {
+                            //如果当前是正在连接
+                            if (isTryConnect) {
+                                Toast.makeText(MainActivity.this, "连接中....", Toast.LENGTH_SHORT);
+                            } else {
+                                // 连接WebSocketService
+                                URLConstants.inputURL = etConnectUrl.getText().toString();
+                                connectWebSocketService();
+                                isTryConnect = true;
+                            }
+                        } else {
+                            webSocketService.closeWebSocket();
+                            //点击关闭当前连接，并且修改文本
+                            setConnectStatus(true);
+
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        setConnectStatus(true);
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+        RxView.clicks(btnSendMessage).throttleFirst(800, TimeUnit.MILLISECONDS)
+                .subscribe(new Observer<Object>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+                        String message = etContent.getText().toString();
+                        if (TextUtils.isEmpty(message)) {
+                            message = "{\"bean\":{\"path\":\"/getBalance\"},\"walletVO\":{\"walletAddress\":\"asdgfadhsgdjhklgfhdgsfadsd\"},\"remoteInfoVO\":{\"realIP\":\"35.194.115.233\"}}";
+                        }
+                        if (webSocketService != null) {
+                            webSocketService.sendMessage(message);
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
+        RxView.clicks(tvCleanLog).throttleFirst(1, TimeUnit.SECONDS)
+                .subscribe(new Observer<Object>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(Object o) {
+                        tvResponseInfo.setText("");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+
+                    }
+
+                    @Override
+                    public void onComplete() {
+
+                    }
+                });
     }
 
     private void connectWebSocketService() {
@@ -140,6 +221,8 @@ public class MainActivity extends AppCompatActivity implements WebSocketResponse
 
     @Override
     public void onOpen(ServerHandshake handshake) {
+        isTryConnect = false;
+        setConnectStatus(false);
         if (webSocketService != null) {
             webSocketService.sendPing();
         }
@@ -150,22 +233,33 @@ public class MainActivity extends AppCompatActivity implements WebSocketResponse
     @Override
     public void onMessage(String message) {
         if (TextUtils.equals(message, Constants.PING)) {
-            setText("收到 heartBeat");
+            setText("-------- heartBeat ---------");
         } else {
-            setText("Message:" + message);
+            setText("收到发出内容:" + message);
         }
 
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        setText("Code:" + code + "\nReason:" + reason);
+        LogTool.d(TAG, "Code:" + code + "\nReason:" + reason);
+        if (code == 1000) {
+            //close success
+            setConnectStatus(true);
+            setText("Close WebSocket Success.Code:" + code);
+        } else {
+            setText("Code:" + code + "\nReason:" + reason);
+
+        }
 
     }
 
     @Override
     public void onError(Exception ex) {
+        isTryConnect = false;
         setText("Error:" + ex.getMessage());
+        webSocketService.closeWebSocket();
+        setConnectStatus(false);
 
     }
 
@@ -177,13 +271,24 @@ public class MainActivity extends AppCompatActivity implements WebSocketResponse
         }
     }
 
+
     private void setText(final String message) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                tvResponseInfo.setText("Response Info:\n -----------\n" + message + "\n -----------");
-
+                String currentText = tvResponseInfo.getText().toString();
+                tvResponseInfo.setText(TextUtils.isEmpty(currentText) ? message : currentText + "\n" + message);
             }
         });
+    }
+
+    /**
+     * 设置接下来的状态
+     *
+     * @param isConnect 是否是显示连接
+     */
+    private void setConnectStatus(boolean isConnect) {
+        btnConnectSocket.setText(isConnect ? "ConnectSocket" : "CloseWebSocket");
+        btnConnectSocket.setTextColor(getResources().getColor(isConnect ? R.color.colorPrimaryDark : R.color.colorAccent));
     }
 }
